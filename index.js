@@ -3,7 +3,6 @@ const qrcode = require('qrcode-terminal');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
-// ربط سوبابيز
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 const client = new Client({
@@ -20,14 +19,13 @@ client.on('message', async msg => {
 
     if (from.includes('@g.us') || from === 'status@broadcast') return;
 
-    // ⏳ شرط توقيت العمل من المغرب (تقريباً 18:00) إلى 23:30
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     
     if (currentHour < 18 || (currentHour === 23 && currentMinute > 30) || currentHour > 23) {
         if (body.toLowerCase() === 'الملك' || body === 'ابدأ' || body === '1') {
-            await msg.reply("👑 *مشاوي الكينغ يرحب بك!* 🥩\nاستقبل الطلبات مغلق حالياً. نتشرف بكم يومياً من *صلاة المغرب حتى الساعة 11:30 ليلاً*.");
+            await msg.reply("👑 *مشاوي الكينغ يرحب بك!* 🥩\nاستقبال الطلبات مغلق حالياً. نتشرف بكم يومياً من *صلاة المغرب حتى الساعة 11:30 ليلاً*.");
         }
         return;
     }
@@ -64,7 +62,6 @@ client.on('message', async msg => {
                 
                 await supabase.storage.from('customer-photos').upload(fileName, buffer, { contentType: 'image/jpeg' });
                 
-                // 🔐 رابط مشفر ومؤقت لـ 10 دقائق لحماية الخصوصية
                 const { data: signedUrlData } = await supabase.storage.from('customer-photos').createSignedUrl(fileName, 600);
 
                 await supabase.from('orders').update({ customer_photo_url: signedUrlData.signedUrl }).eq('id', orderId);
@@ -157,3 +154,6 @@ client.on('message', async msg => {
             try {
                 const photoMedia = await MessageMedia.fromUrl(finalOrder.customer_photo_url);
                 const adminMsg = `🚨 *طلب جديد واجد يا كينغ (#${orderId})* 🚨\n\n👤 *الزبون:* ${finalOrder.customer_name}\n🥖 *النوع:* ${finalOrder.bread_type}\n🌶️ *الصوص:* ${finalOrder.harissa ? 'هريسة' : ''} + ${finalOrder.cheese ? 'فرماج' : ''}\n🥩 *الطلبية:*\n${itemsList}\n🧂 *التوابل:* ${finalOrder.spices}\n\n📸 صورة الزبون مرفقة أسفله (الرابط خاص ومؤقت لـ 10 دقائق للأمان)!`;
+                await client.sendMessage(process.env.MY_PERSONAL_PHONE, photoMedia, { caption: adminMsg });
+            } catch (err) {
+                console.log("خطأ في إرسال الإشعار للمالك: ", err);
